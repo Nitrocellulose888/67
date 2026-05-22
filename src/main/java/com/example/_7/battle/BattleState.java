@@ -89,6 +89,19 @@ public class BattleState {
         return currentShield;
     }
 
+    // max getters（新增，供 UI 使用）
+    public int getMaxHp() {
+        return maxHp;
+    }
+
+    public int getMaxStamina() {
+        return maxStamina;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
+    }
+
     public List<Buff> getBuffs() {
         return List.copyOf(buffs);
     }

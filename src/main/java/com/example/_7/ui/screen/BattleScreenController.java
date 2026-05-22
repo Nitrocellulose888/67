@@ -87,6 +87,7 @@ public class BattleScreenController {
                 AnchorPane.setLeftAnchor(enemyHealth, 0.0);
             }
         } catch (Exception e) {
+            // 保留印出但不讓 UI 崩潰（可改為 logging）
             e.printStackTrace();
         }
     }
@@ -102,16 +103,36 @@ public class BattleScreenController {
                 double deltaSeconds = (now - lastTimeNs) / 1_000_000_000.0;
                 lastTimeNs = now;
 
-                engine.update(deltaSeconds);
+                // 防護：避免 engine 或 session 為 null 導致 NPE
+                if (engine == null || session == null) {
+                    return;
+                }
+
+                try {
+                    engine.update(deltaSeconds);
+                } catch (Exception e) {
+                    // 若 engine.update 發生例外，避免整個 UI 崩潰
+                    e.printStackTrace();
+                }
+
                 updateUI();
 
-                boolean playerDead = session.getPlayer().isDead();
-                boolean enemyDead = session.getCurrentEnemy().isDead();
+                boolean playerDead = false;
+                boolean enemyDead = false;
+                try {
+                    if (session.getPlayer() != null) playerDead = session.getPlayer().isDead();
+                    if (session.getCurrentEnemy() != null) enemyDead = session.getCurrentEnemy().isDead();
+                } catch (Exception ignored) {
+                    // 若讀取發生錯誤，稍後再檢查
+                }
 
                 if (playerDead || enemyDead) {
                     stop();
-                    if (enemyDead && !playerDead) roundManager.handleBattleVictory(session);
-                    else roundManager.handleBattleDefeat(session);
+                    if (enemyDead && !playerDead) {
+                        try { roundManager.handleBattleVictory(session); } catch (Exception e) { e.printStackTrace(); }
+                    } else {
+                        try { roundManager.handleBattleDefeat(session); } catch (Exception e) { e.printStackTrace(); }
+                    }
 
                     try {
                         if (session.getCurrentPhase() == GamePhase.PREPARATION) {
@@ -135,10 +156,20 @@ public class BattleScreenController {
 
     private void updateUI() {
         try {
-            int playerCur = session.getPlayer().getBattleState().getCurrentHp();
-            int playerMax = session.getPlayer().getBattleState().getMaxHp();
-            int enemyCur = session.getCurrentEnemy().getBattleState().getCurrentHp();
-            int enemyMax = session.getCurrentEnemy().getBattleState().getMaxHp();
+            // 安全檢查：逐層確認非 null
+            if (session == null) return;
+            if (session.getPlayer() == null) return;
+            if (session.getCurrentEnemy() == null) return;
+
+            var playerBattleState = session.getPlayer().getBattleState();
+            var enemyBattleState = session.getCurrentEnemy().getBattleState();
+
+            if (playerBattleState == null || enemyBattleState == null) return;
+
+            int playerCur = playerBattleState.getCurrentHp();
+            int playerMax = playerBattleState.getMaxHp();
+            int enemyCur = enemyBattleState.getCurrentHp();
+            int enemyMax = enemyBattleState.getMaxHp();
 
             if (playerHealth != null) playerHealth.update(playerCur, playerMax);
             if (enemyHealth != null) enemyHealth.update(enemyCur, enemyMax);
@@ -148,7 +179,9 @@ public class BattleScreenController {
                 double eRatio = enemyMax > 0 ? (double) enemyCur / enemyMax : 0;
                 statusPanel.update(pRatio, eRatio);
             }
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+            // 保險起見：避免 UI 因非致命錯誤崩潰
+        }
     }
 
     @FXML

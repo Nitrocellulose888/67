@@ -9,6 +9,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * 背包（格子 + 放置道具）
+ */
 public class Backpack {
     private static final int DEFAULT_ROWS = 5;
     private static final int DEFAULT_COLS = 5;
@@ -133,16 +136,11 @@ public class Backpack {
         return false;
     }
 
-    private boolean canPlace(PlacedItem placedItem) {
-        // 暫時簡單實現：允許放置
-        return true;
-    }
-}
     /*
      * 將某個 PlacedItem 的局部 shape cell，
      * 轉換成背包上的實際格子座標。
      */
-    private  Set<GridPosition> getOccupiedBackpackCells(PlacedItem placedItem) {
+    private Set<GridPosition> getOccupiedBackpackCells(PlacedItem placedItem) {
         Set<GridPosition> occupiedPositions = new HashSet<>();
 
         GridPosition basePosition = placedItem.getPosition();
